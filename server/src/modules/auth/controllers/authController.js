@@ -44,6 +44,21 @@ const csrfCookieDomain = (() => {
   if (!raw) return undefined;
   return raw.startsWith('.') ? raw : `.${raw}`;
 })();
+const getRequestHost = (req) => {
+  const forwarded = req.get('x-forwarded-host');
+  const hostHeader = (forwarded || req.get('host') || req.hostname || '').split(',')[0].trim().toLowerCase();
+  return hostHeader.split(':')[0];
+};
+const resolveCsrfCookieDomain = (req) => {
+  if (!csrfCookieDomain) return undefined;
+  const host = getRequestHost(req);
+  if (!host) return undefined;
+  const bareDomain = csrfCookieDomain.replace(/^\./, '').toLowerCase();
+  if (host === bareDomain || host.endsWith(`.${bareDomain}`)) {
+    return csrfCookieDomain;
+  }
+  return undefined;
+};
 
 const cookieOptions = (maxAgeMs) => ({
   httpOnly: true,
@@ -59,14 +74,17 @@ const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60 * 1000;  // default (ms)
 const CSRF_TOKEN_TTL    = REFRESH_TOKEN_TTL;
 
 // Non-httpOnly so the browser JS can read and forward it as X-CSRF-Token
-const csrfCookieOptions = () => ({
-  httpOnly: false,
-  secure: isProduction(),
-  sameSite: isProduction() ? 'none' : 'lax',
-  path: '/',
-  maxAge: CSRF_TOKEN_TTL,
-  ...(csrfCookieDomain ? { domain: csrfCookieDomain } : {}),
-});
+const csrfCookieOptions = (req) => {
+  const domain = resolveCsrfCookieDomain(req);
+  return {
+    httpOnly: false,
+    secure: isProduction(),
+    sameSite: isProduction() ? 'none' : 'lax',
+    path: '/',
+    maxAge: CSRF_TOKEN_TTL,
+    ...(domain ? { domain } : {}),
+  };
+};
 
 const clearCookieOptions = () => ({
   httpOnly: true,
@@ -87,21 +105,22 @@ const isMobileClient = (req) =>
   req.headers['x-client-type'] === 'api';
 
 /** Set both the httpOnly auth cookies and (optionally) the readable CSRF cookie. */
-const setAuthCookies = (res, { accessToken, refreshToken, csrfToken, refreshTokenTtlMs }) => {
+const setAuthCookies = (req, res, { accessToken, refreshToken, csrfToken, refreshTokenTtlMs }) => {
   res.cookie('accessToken',  accessToken,  cookieOptions(ACCESS_TOKEN_TTL));
   res.cookie('refreshToken', refreshToken, cookieOptions(refreshTokenTtlMs || REFRESH_TOKEN_TTL));
   if (csrfToken) {
-    res.cookie('csrf-token', csrfToken, csrfCookieOptions());
+    res.cookie('csrf-token', csrfToken, csrfCookieOptions(req));
   }
 };
 
-const clearAuthCookies = (res) => {
+const clearAuthCookies = (req, res) => {
+  const domain = resolveCsrfCookieDomain(req);
   res.clearCookie('accessToken',  clearCookieOptions());
   res.clearCookie('refreshToken', clearCookieOptions());
   res.clearCookie('csrf-token', {
     ...clearCookieOptions(),
     httpOnly: false,
-    ...(csrfCookieDomain ? { domain: csrfCookieDomain } : {}),
+    ...(domain ? { domain } : {}),
   });
 };
 
@@ -143,7 +162,7 @@ class AuthController {
 
       const csrfToken = crypto.randomBytes(32).toString('hex');
 
-      setAuthCookies(res, {
+      setAuthCookies(req, res, {
         accessToken:  result.accessToken,
         refreshToken: result.refreshToken,
         csrfToken,
@@ -181,7 +200,7 @@ class AuthController {
       const result = await authService.googleLoginOrRegister(id_token, ipAddress, userAgent);
 
       const csrfToken = crypto.randomBytes(32).toString('hex');
-      setAuthCookies(res, {
+      setAuthCookies(req, res, {
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
         csrfToken,
@@ -227,7 +246,7 @@ class AuthController {
 
       const csrfToken = crypto.randomBytes(32).toString('hex');
 
-      setAuthCookies(res, {
+      setAuthCookies(req, res, {
         accessToken:  result.accessToken,
         refreshToken: result.refreshToken,
         csrfToken,
@@ -258,7 +277,7 @@ class AuthController {
       const rawRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
       await authService.logout(req.user._id, req.token, rawRefreshToken);
 
-      clearAuthCookies(res);
+      clearAuthCookies(req, res);
 
       res.status(200).json({
         status: 'success',
@@ -275,7 +294,7 @@ class AuthController {
       // Refresh the CSRF token alongside the profile response so the client
       // always has a current token after a page reload.
       const csrfToken = crypto.randomBytes(32).toString('hex');
-      res.cookie('csrf-token', csrfToken, csrfCookieOptions());
+      res.cookie('csrf-token', csrfToken, csrfCookieOptions(req));
 
       let u = req.user;
       const roles = u.roles?.length ? u.roles : (u.role ? [u.role] : []);
@@ -402,7 +421,7 @@ class AuthController {
       const result = await authService.verifyLogin2FA(tempToken, token, ipAddress, userAgent);
       const csrfToken = crypto.randomBytes(32).toString('hex');
 
-      setAuthCookies(res, {
+      setAuthCookies(req, res, {
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
         csrfToken,
@@ -473,7 +492,7 @@ class AuthController {
       const result = await authService.resetPassword(token, password);
 
       // Clear any lingering auth cookies
-      clearAuthCookies(res);
+      clearAuthCookies(req, res);
 
       res.status(200).json({ status: 'success', message: result.message });
     } catch (error) {
