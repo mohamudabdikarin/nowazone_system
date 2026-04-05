@@ -41,7 +41,9 @@ export function useSupportCounts() {
     const socket = connectSocket();
     const handler = () => fetchCounts();
     socket.on('notification:new', handler);
-    return () => socket.off('notification:new', handler);
+    return () => {
+      socket.off('notification:new', handler);
+    };
   }, [fetchCounts]);
 
   return { ticketsCount, refresh: fetchCounts };
