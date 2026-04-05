@@ -5,11 +5,11 @@ const REQUIRED_ENV = ['MONGODB_URI', 'JWT_ACCESS_SECRET'];
 const MISSING = REQUIRED_ENV.filter((k) => !process.env[k]);
 if (MISSING.length) {
   console.error(`[STARTUP] Missing required environment variables: ${MISSING.join(', ')}`);
-  process.exit(1);
+  if (!process.env.VERCEL) process.exit(1);
 }
 if ((process.env.JWT_ACCESS_SECRET || '').length < 32) {
   console.warn('[SECURITY WARNING] JWT_ACCESS_SECRET should be at least 32 characters.');
-  if (process.env.NODE_ENV === 'production') process.exit(1);
+  if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) process.exit(1);
 }
 
 const express = require('express');
@@ -103,21 +103,25 @@ io.use(async (socket, next) => {
 connectDB();
 
 // ─── BullMQ email worker (runs in same process)
-try {
-  const { startEmailWorker } = require('./shared/queues/workers/emailWorker');
-  startEmailWorker();
-  console.log('[Server] Email queue worker started');
-} catch (err) {
-  console.warn('[Server] Email worker failed to start:', err.message);
-}
+if (!process.env.VERCEL) {
+  try {
+    const { startEmailWorker } = require('./shared/queues/workers/emailWorker');
+    startEmailWorker();
+    console.log('[Server] Email queue worker started');
+  } catch (err) {
+    console.warn('[Server] Email worker failed to start:', err.message);
+  }
 
-// ─── Maintenance jobs (backup + log retention) ─────────────────────────────────
-try {
-  const { startMaintenanceJobs } = require('./shared/services/maintenanceBackupService');
-  startMaintenanceJobs();
-  console.log('[Server] Maintenance jobs scheduler started');
-} catch (err) {
-  console.warn('[Server] Maintenance jobs failed to start:', err.message);
+  // ─── Maintenance jobs (backup + log retention) ─────────────────────────────────
+  try {
+    const { startMaintenanceJobs } = require('./shared/services/maintenanceBackupService');
+    startMaintenanceJobs();
+    console.log('[Server] Maintenance jobs scheduler started');
+  } catch (err) {
+    console.warn('[Server] Maintenance jobs failed to start:', err.message);
+  }
+} else {
+  console.log('[Server] Running on Vercel: skipped continuous workers and cron jobs.');
 }
 
 // ─── Security headers ─────────────────────────────────────────────────────────
@@ -380,6 +384,9 @@ app.use(errorHandler);
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`[Server] running on port ${PORT} (${process.env.NODE_ENV || 'development'})`));
+if (!process.env.VERCEL) {
+  server.listen(PORT, () => console.log(`[Server] running on port ${PORT} (${process.env.NODE_ENV || 'development'})`));
+}
 
-module.exports = { app, io };
+// Vercel serverless expects 'app' directly mounted
+module.exports = process.env.VERCEL ? app : { app, io };
