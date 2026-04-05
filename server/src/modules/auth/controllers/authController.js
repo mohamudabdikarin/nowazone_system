@@ -43,9 +43,8 @@ const isProduction = () => process.env.NODE_ENV === 'production';
 const cookieOptions = (maxAgeMs) => ({
   httpOnly: true,
   secure: isProduction(),
-  // 'strict' works for same-site deployments (same eTLD+1). Change to 'lax'
-  // only if the frontend and API are on truly different domains.
-  sameSite: 'strict',
+  // For cross-domain deployments (e.g., .vercel.app to .nowazone.com), SameSite MUST be 'none'
+  sameSite: isProduction() ? 'none' : 'lax',
   path: '/',
   maxAge: maxAgeMs,
 });
@@ -58,7 +57,7 @@ const CSRF_TOKEN_TTL    = REFRESH_TOKEN_TTL;
 const csrfCookieOptions = () => ({
   httpOnly: false,
   secure: isProduction(),
-  sameSite: 'strict',
+  sameSite: isProduction() ? 'none' : 'lax',
   path: '/',
   maxAge: CSRF_TOKEN_TTL,
 });
@@ -66,7 +65,7 @@ const csrfCookieOptions = () => ({
 const clearCookieOptions = () => ({
   httpOnly: true,
   secure: isProduction(),
-  sameSite: 'strict',
+  sameSite: isProduction() ? 'none' : 'lax',
   path: '/',
 });
 
