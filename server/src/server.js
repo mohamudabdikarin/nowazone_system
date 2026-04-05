@@ -64,7 +64,14 @@ const server = http.createServer(app);
 app.set('trust proxy', process.env.TRUST_PROXY || (process.env.NODE_ENV === 'production' ? 1 : 0));
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3000').split(',').map((o) => o.trim());
+const envOrigins = (process.env.CLIENT_URL || 'http://localhost:3000').split(',').map((o) => o.trim());
+const allowedOrigins = Array.from(new Set([
+  ...envOrigins,
+  'https://systems.nowazone.com',
+  'https://www.nowazone.com',
+  'https://nowazone.com',
+  'https://nowazone-system.vercel.app'
+]));
 const corsOptions = {
   origin: (origin, callback) => {
     // In production, block requests without origin (cURL, tools) to strict CORS routes if desired
