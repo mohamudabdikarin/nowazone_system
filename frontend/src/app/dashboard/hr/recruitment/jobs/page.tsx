@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { api } from '@/lib/api';
+import { showConfirm } from '@/lib/sweetalert';
 
 interface JobPosting {
   _id: string;
@@ -64,7 +65,8 @@ export default function JobListingsPage() {
   useEffect(() => { fetchJobs(); }, [fetchJobs]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this job posting?')) return;
+    const result = await showConfirm('Delete job posting?', 'Delete this job posting?');
+    if (!result.isConfirmed) return;
     try {
       await api.delete(`/jobs/${id}`);
       toast.success('Job deleted');
@@ -82,7 +84,8 @@ export default function JobListingsPage() {
   };
 
   const closeJob = async (job: JobPosting) => {
-    if (!confirm(`Close "${job.title}"? This will stop accepting new applications.`)) return;
+    const result = await showConfirm('Close job?', `Close "${job.title}"? This will stop accepting new applications.`);
+    if (!result.isConfirmed) return;
     try {
       await api.patch(`/jobs/${job._id}`, { status: 'closed' });
       toast.success('Job closed');

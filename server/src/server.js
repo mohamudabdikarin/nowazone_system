@@ -21,6 +21,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
+const notificationController = require('./modules/notifications/controllers/notificationController');
 
 const connectDB = require('./shared/config/database');
 const { errorHandler } = require('./shared/middleware/errorHandler');
@@ -64,13 +65,15 @@ const server = http.createServer(app);
 app.set('trust proxy', process.env.TRUST_PROXY || (process.env.NODE_ENV === 'production' ? 1 : 0));
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-const envOrigins = (process.env.CLIENT_URL || 'http://localhost:3000').split(',').map((o) => o.trim());
+const envOrigins = (process.env.CLIENT_URL || 'http://localhost:3000' || 'http://localhost:3001').split(',').map((o) => o.trim());
 const allowedOrigins = Array.from(new Set([
   ...envOrigins,
   'https://systems.nowazone.com',
   'https://www.nowazone.com',
   'https://nowazone.com',
-  'https://nowazone-system.vercel.app'
+  'https://nowazone-system.vercel.app',
+  'http://localhost:3001',
+  'http://localhost:3000'
 ]));
 const corsOptions = {
   origin: (origin, callback) => {
@@ -209,6 +212,9 @@ io.on('connection', (socket) => {
 
   // Join a personal room for targeted notifications
   if (userId) socket.join(`user:${userId}`);
+
+  // Join global notification room for system-wide important alerts
+  socket.join('global');
 
   // Role-based notification rooms (for real-time alerts)
   const adminRoles = ['super_admin', 'admin'];
@@ -355,11 +361,14 @@ chatNs.on('connection', (socket) => {
           session.status = 'escalated';
           botReply = config.fallbackMessage || "I'm not fully sure about that. I've connected you with a team member who will respond shortly.";
           source = 'escalation_notice';
-          io.to('crm').emit('notification:new', {
-            type: 'chat_escalated',
+          await notificationController.createAndEmit(io, {
             title: 'Chat escalated to human',
             message: `${visitorName || 'A visitor'} needs help: ${message.slice(0, 100)}`,
-            data: { sessionId: session._id, ticketId: session.escalatedTicketId },
+            type: 'ticket',
+            isGlobal: true,
+            room: 'crm',
+            link: '/dashboard/tickets',
+            metadata: { sessionId: session._id, ticketId: session.escalatedTicketId },
           });
         } else {
           botReply = config.fallbackMessage || "I'm not sure about that right now. Please try our contact form.";

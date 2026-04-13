@@ -7,6 +7,7 @@ const { cloudinary } = require('../../../shared/config/cloudinary');
 const emailService   = require('../../../shared/services/emailService');
 const { addEmailJob } = require('../../../shared/queues/emailQueue');
 const resumeParser   = require('../services/resumeParserService');
+const notificationController = require('../../notifications/controllers/notificationController');
 
 // ── Jobs ──────────────────────────────────────────────────────────────────────
 
@@ -111,10 +112,15 @@ exports.createResume = async (req, res, next) => {
 
     const io = req.app.get('io');
     if (io) {
-      io.to('hr').emit('notification', {
-        type: 'new_application',
-        data: {
-          id: resume._id,
+      await notificationController.createAndEmit(io, {
+        title: 'New application received',
+        message: `${resume.applicantName || resume.email} submitted an application.`,
+        type: 'job',
+        isGlobal: true,
+        room: 'hr',
+        link: '/dashboard/hr/recruitment/applications',
+        metadata: {
+          applicationId: resume._id,
           applicantName: resume.applicantName,
           email: resume.email,
           jobId: resume.jobId,

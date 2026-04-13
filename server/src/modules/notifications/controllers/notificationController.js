@@ -69,11 +69,13 @@ exports.clearNotifications = async (req, res, next) => {
 };
 
 // Helper: create + emit a notification (used by other modules)
-exports.createAndEmit = async (io, { title, message, type, userId, isGlobal, link, metadata }) => {
+exports.createAndEmit = async (io, { title, message, type, userId, isGlobal, link, metadata, room }) => {
   try {
     const notification = await Notification.create({ title, message, type, userId, isGlobal, link, metadata });
-    const room = userId ? `user:${userId}` : 'global';
-    io.to(room).emit('notification:new', notification);
+    const emitRoom = room || (userId ? `user:${userId}` : (isGlobal ? 'global' : null));
+    if (emitRoom) {
+      io.to(emitRoom).emit('notification:new', notification);
+    }
     return notification;
   } catch (err) {
     console.error('[Notification] Failed to create/emit:', err.message);

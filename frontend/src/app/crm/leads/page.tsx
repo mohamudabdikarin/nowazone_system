@@ -12,7 +12,7 @@ import {
   Mail, Phone, Building2, Zap, CalendarClock, User, X,
 } from 'lucide-react';
 import api from '@/lib/api';
-import { showConfirm, showError, showSuccess } from '@/lib/sweetalert';
+import { showError, showSuccess, showConfirm } from '@/lib/sweetalert';
 
 const addLeadSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),

@@ -5,10 +5,19 @@ import { toast } from 'react-toastify';
 import { connectSocket } from '@/lib/socket';
 import api from '@/lib/api';
 
+let notificationAudioContext: AudioContext | null = null;
+
 /** Play a short notification sound (bell) when a new notification arrives. */
-function playNotificationSound() {
+async function playNotificationSound() {
   try {
-    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!notificationAudioContext) {
+      notificationAudioContext = new AudioContextClass();
+    }
+    const ctx = notificationAudioContext;
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
@@ -87,6 +96,28 @@ export function useNotifications() {
 
     fetchCount();
 
+    // Initialize AudioContext on first user interaction
+    const initAudio = async () => {
+      try {
+        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (!notificationAudioContext) {
+          notificationAudioContext = new AudioContextClass();
+        }
+        if (notificationAudioContext.state === 'suspended') {
+          await notificationAudioContext.resume();
+        }
+      } catch {
+        // Ignore
+      }
+      // Remove listeners after first interaction
+      document.removeEventListener('click', initAudio);
+      document.removeEventListener('touchstart', initAudio);
+      document.removeEventListener('keydown', initAudio);
+    };
+    document.addEventListener('click', initAudio, { once: true });
+    document.addEventListener('touchstart', initAudio, { once: true });
+    document.addEventListener('keydown', initAudio, { once: true });
+
     // Connect socket for real-time updates
     const socket = connectSocket();
 
@@ -115,10 +146,25 @@ export function useNotifications() {
       const { type, data } = payload;
       if (type === 'new_lead' && data) {
         toast.info(`New lead: ${(data.name as string) || data.email}`);
+        showBrowserNotification(
+          'New lead received',
+          `${(data.name as string) || data.email} was added as a lead.`,
+          '/dashboard/sales/leads',
+        );
       } else if (type === 'lead_assigned' && data) {
         toast.info(`Lead assigned to you: ${(data.name as string) || data.email}`);
+        showBrowserNotification(
+          'Lead assigned to you',
+          `${(data.name as string) || data.email} is now assigned to you.`,
+          '/dashboard/sales/leads',
+        );
       } else if (type === 'new_application' && data) {
         toast.info(`New application from ${(data.applicantName as string) || data.email}`);
+        showBrowserNotification(
+          'New application received',
+          `${(data.applicantName as string) || data.email} submitted an application.`,
+          '/dashboard/hr/recruitment/applications',
+        );
       }
     });
 
@@ -129,6 +175,9 @@ export function useNotifications() {
       clearInterval(interval);
       socket.off('notification:new');
       socket.off('notification');
+      document.removeEventListener('click', initAudio);
+      document.removeEventListener('touchstart', initAudio);
+      document.removeEventListener('keydown', initAudio);
     };
   }, [fetchCount]);
 

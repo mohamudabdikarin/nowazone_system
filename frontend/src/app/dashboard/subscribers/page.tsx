@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Mail, Search, UserPlus, Trash2, Download, RefreshCw, Users, Sparkles } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'react-toastify';
+import { showConfirm } from '@/lib/sweetalert';
 
 interface Subscriber { _id: string; email: string; name?: string; status: string; source: string; country?: string; createdAt: string; }
 
@@ -108,7 +109,8 @@ export default function SubscribersPage() {
   }, [activeTab, fetchCampaigns]);
 
   const deleteSubscriber = async (id: string) => {
-    if (!confirm('Remove this subscriber?')) return;
+    const result = await showConfirm('Remove subscriber?', 'Remove this subscriber?');
+    if (!result.isConfirmed) return;
     try {
       await api.delete(`/subscribers/${id}`);
       setSubscribers(prev => prev.filter(s => s._id !== id));
@@ -275,7 +277,8 @@ ${baseGreeting}
   };
 
   const handleSendCampaign = async (id: string) => {
-    if (!confirm('Send this campaign to matching subscribers?')) return;
+    const result = await showConfirm('Send campaign?', 'Send this campaign to matching subscribers?');
+    if (!result.isConfirmed) return;
     setSendingIds(prev => [...prev, id]);
     try {
       await api.post(`/subscribers/campaigns/${id}/send`);

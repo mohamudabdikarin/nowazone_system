@@ -5,10 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import {
   Users, Plus, Search, ShieldCheck, Lock, Unlock, LogOut, MessageCircle,
-  Network, Clock3, Activity, X, Loader2, Trash2, AlertTriangle, Eye, EyeOff, RefreshCw, Pencil, Copy, Mail,
+  Network, Clock3, Activity, X, Loader2, Trash2, Eye, EyeOff, RefreshCw, Pencil, Copy, Mail,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'react-toastify';
+import { showConfirm } from '@/lib/sweetalert';
 
 /* ═══════════════════════════════════════════════════════════════
    ANIMATION PRIMITIVES
@@ -271,7 +272,6 @@ export default function UsersPage() {
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserIsSuperAdmin, setCurrentUserIsSuperAdmin] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ userId: string; name: string; email: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showAllActivity, setShowAllActivity] = useState(false);
   const [showAllSessions, setShowAllSessions] = useState(false);
@@ -424,13 +424,14 @@ export default function UsersPage() {
     } finally { setUpdating(false); }
   };
 
-  const deleteUser = async (userId: string) => {
-    if (!deleteConfirm || deleteConfirm.userId !== userId) return;
+  const deleteUser = async (userId: string, name: string, email: string) => {
+    const result = await showConfirm('Delete user?', `Are you sure you want to permanently delete ${name} (${email})? All sessions and data will be removed.`);
+    if (!result.isConfirmed) return;
+
     setBusyUserId(userId);
     try {
       await api.delete(`/auth/admin/users/${userId}`);
       toast.success('User deleted successfully');
-      setDeleteConfirm(null);
       await fetchUsers();
       if (selectedUserId === userId) {
         setSelectedUserId(null);
@@ -975,7 +976,7 @@ export default function UsersPage() {
                           {selectedProfile.user._id !== currentUserId && (currentUserIsSuperAdmin || !((selectedProfile.user as any).roles || [selectedProfile.user.role]).includes('super_admin')) && (
                             <motion.button
                               type="button"
-                              onClick={() => setDeleteConfirm({ userId: selectedProfile.user._id, name: selectedProfile.user.name, email: selectedProfile.user.email })}
+                              onClick={() => deleteUser(selectedProfile.user._id, selectedProfile.user.name, selectedProfile.user.email)}
                               disabled={busyUserId === selectedProfile.user._id}
                               whileHover={{ scale: 1.03 }}
                               whileTap={{ scale: 0.96 }}
@@ -1521,74 +1522,6 @@ export default function UsersPage() {
         )}
       </AnimatePresence>
 
-      {/* ═══════════════════════════════════════════════════════════
-          DELETE USER CONFIRMATION DIALOG
-          ═══════════════════════════════════════════════════════════ */}
-      <AnimatePresence>
-        {deleteConfirm && (
-          <motion.div
-            variants={overlayVariants}
-            initial="hidden"
-            animate="show"
-            exit="exit"
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
-            onClick={(e) => { if (e.target === e.currentTarget) setDeleteConfirm(null); }}
-          >
-            <motion.div
-              variants={modalVariants}
-              initial="hidden"
-              animate="show"
-              exit="exit"
-              onClick={(e) => e.stopPropagation()}
-              className="border rounded-2xl p-6 w-full max-w-md mx-4"
-              style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 rounded-xl" style={{ backgroundColor: 'var(--error-subtle)' }}>
-                  <AlertTriangle size={22} style={{ color: 'var(--error)' }} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Delete User</h2>
-                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>This action cannot be undone</p>
-                </div>
-              </div>
-              <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>
-                Are you sure you want to permanently delete <strong style={{ color: 'var(--text-primary)' }}>{deleteConfirm.name}</strong> ({deleteConfirm.email})? All sessions and data will be removed.
-              </p>
-              <div className="flex gap-3">
-                <motion.button
-                  type="button"
-                  onClick={() => setDeleteConfirm(null)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="flex-1 py-2.5 border rounded-xl text-sm font-medium cursor-pointer"
-                  style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  type="button"
-                  onClick={() => deleteUser(deleteConfirm.userId)}
-                  disabled={busyUserId === deleteConfirm.userId}
-                  whileHover={{ scale: busyUserId === deleteConfirm.userId ? 1 : 1.02 }}
-                  whileTap={{ scale: busyUserId === deleteConfirm.userId ? 1 : 0.97 }}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-bold cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ backgroundColor: 'var(--error)', color: 'white' }}
-                >
-                  {busyUserId === deleteConfirm.userId ? (
-                    <motion.span animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}>
-                      <Loader2 size={14} />
-                    </motion.span>
-                  ) : (
-                    <Trash2 size={14} />
-                  )}
-                  {busyUserId === deleteConfirm.userId ? 'Deleting…' : 'Delete User'}
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }

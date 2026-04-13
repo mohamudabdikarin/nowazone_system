@@ -6,6 +6,7 @@ const { AppError } = require('../../../shared/middleware/errorHandler');
 const rateLimit = require('express-rate-limit');
 const emailService = require('../../../shared/services/emailService');
 const { invalidateDashboardCache } = require('../../../shared/services/dashboardCache');
+const notificationController = require('../../notifications/controllers/notificationController');
 
 // ─── In-memory rate limiters for public form endpoints ──────────────────────
 
@@ -43,11 +44,14 @@ async function createLeadFromSubmission(submission, req) {
 
   const io = req.app.get('io');
   if (io) {
-    io.to('crm').emit('notification:new', {
-      type: 'new_lead',
+    await notificationController.createAndEmit(io, {
       title: `New ${submission.type} submission`,
       message: `${submission.name} submitted a ${submission.type} form`,
-      data: { formId: submission._id, leadId: lead._id },
+      type: 'lead',
+      isGlobal: true,
+      room: 'crm',
+      link: '/dashboard/form-submissions',
+      metadata: { formId: submission._id, leadId: lead._id, formType: submission.type },
     });
   }
 
@@ -409,6 +413,23 @@ exports.updateSubmissionStatus = async (req, res, next) => {
       status: 'success',
       message: 'Submission status updated',
       data: { submission },
+    });
+  } catch (err) { next(err); }
+};
+
+exports.deleteSubmission = async (req, res, next) => {
+  try {
+    const submission = await FormSubmission.findByIdAndDelete(req.params.id);
+
+    if (!submission) {
+      return next(new AppError('Form submission not found', 404));
+    }
+
+    invalidateDashboardCache().catch(() => {});
+
+    res.json({
+      status: 'success',
+      message: 'Submission deleted successfully',
     });
   } catch (err) { next(err); }
 };

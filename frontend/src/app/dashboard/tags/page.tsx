@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit, Trash2, Tag as TagIcon, Hash } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'react-toastify';
+import { showConfirm } from '@/lib/sweetalert';
 
 /* ═══════════════════════════════════════════════════════════════
    ANIMATION PRIMITIVES
@@ -97,7 +98,8 @@ export default function TagsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this tag?')) return;
+    const result = await showConfirm('Delete tag?', 'Are you sure you want to delete this tag?');
+    if (!result.isConfirmed) return;
     try {
       await api.delete(`/tags/${id}`);
       toast.success('Tag deleted successfully');

@@ -1,5 +1,6 @@
 const Subscriber = require('../models/Subscriber');
 const { AppError } = require('../../../shared/middleware/errorHandler');
+const notificationController = require('../../notifications/controllers/notificationController');
 
 exports.subscribe = async (req, res, next) => {
   try {
@@ -16,10 +17,22 @@ exports.subscribe = async (req, res, next) => {
         existing.tags = Array.from(new Set([...(existing.tags || []), ...tags]));
       }
       await existing.save();
+      const io = req.app.get('io');
+      if (io && existing.status === 'active') {
+        await notificationController.createAndEmit(io, {
+          title: 'Subscriber re-activated',
+          message: `${existing.email} rejoined the subscriber list.`,
+          type: 'subscriber',
+          isGlobal: true,
+          room: 'crm',
+          link: '/dashboard/subscribers',
+          metadata: { subscriberId: existing._id, email: existing.email },
+        });
+      }
       return res.json({ status: 'success', message: existing.status === 'active' ? 'Resubscribed successfully' : 'Already subscribed' });
     }
 
-    await Subscriber.create({
+    const subscriber = await Subscriber.create({
       email,
       name,
       country: country || undefined,
@@ -27,6 +40,20 @@ exports.subscribe = async (req, res, next) => {
       ipAddress: req.ip,
       confirmedAt: new Date(),
     });
+
+    const io = req.app.get('io');
+    if (io) {
+      await notificationController.createAndEmit(io, {
+        title: 'New subscriber received',
+        message: `${subscriber.email} subscribed to updates.`,
+        type: 'subscriber',
+        isGlobal: true,
+        room: 'crm',
+        link: '/dashboard/subscribers',
+        metadata: { subscriberId: subscriber._id, email: subscriber.email },
+      });
+    }
+
     res.status(201).json({ status: 'success', message: 'Subscribed successfully' });
   } catch (err) { next(err); }
 };

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { api } from '@/lib/api';
+import { showConfirm } from '@/lib/sweetalert';
 
 interface AttendanceRecord {
   _id: string;
@@ -130,7 +131,8 @@ export default function EmployeeProfilePage() {
   };
 
   const deleteDocument = async (index: number) => {
-    if (!confirm('Delete this document?')) return;
+    const result = await showConfirm('Delete document?', 'Delete this document?');
+    if (!result.isConfirmed) return;
     setDocDeleting(index);
     try {
       const { data } = await api.delete(`/hr/employees/${id}/documents/${index}`);

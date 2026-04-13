@@ -10,7 +10,7 @@ const auditLogger = (action) => {
 
       if (res.statusCode >= 200 && res.statusCode < 300) {
         AuditLog.create({
-          user: req.user?._id,
+          user: req.user?._id || null,
           action,
           resource: req.originalUrl,
           method: req.method,

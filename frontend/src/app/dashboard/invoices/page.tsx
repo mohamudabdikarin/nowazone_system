@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DollarSign, Plus, Search, FileText, CheckCircle, Clock, XCircle, X, Trash2, DownloadCloud, Pencil } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'react-toastify';
+import { showConfirm } from '@/lib/sweetalert';
 
 interface InvoiceItem { description: string; quantity: number; unitPrice: number; taxRate: number; }
 interface Invoice {
@@ -218,7 +219,8 @@ export default function InvoicesPage() {
   };
 
   const deleteInvoice = async (id: string) => {
-    if (!confirm('Delete this invoice?')) return;
+    const result = await showConfirm('Delete invoice?', 'Delete this invoice?');
+    if (!result.isConfirmed) return;
     try {
       await api.delete(`/invoices/${id}`);
       setInvoices(prev => prev.filter(i => i._id !== id));

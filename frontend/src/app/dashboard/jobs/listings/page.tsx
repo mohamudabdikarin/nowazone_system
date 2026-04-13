@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Briefcase, Plus, Search, MapPin, Clock, ChevronRight, Trash2, ToggleLeft, ToggleRight, Pencil } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'react-toastify';
+import { showConfirm } from '@/lib/sweetalert';
 
 interface Job {
   _id: string;
@@ -138,7 +139,8 @@ export default function JobListingsPage() {
   };
 
   const deleteJob = async (id: string) => {
-    if (!confirm('Delete this job and all applications?')) return;
+    const result = await showConfirm('Delete job?', 'Delete this job and all applications?');
+    if (!result.isConfirmed) return;
     try {
       await api.delete(`/jobs/${id}`);
       setJobs(prev => prev.filter(j => j._id !== id));

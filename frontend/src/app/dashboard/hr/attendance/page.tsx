@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   CalendarDays, Search, ChevronLeft, ChevronRight,
   UserCheck, UserX, Clock, Coffee, Download,
-  Trash2, Edit2, Check, X, BarChart3, ClipboardList, CheckSquare,
+  Trash2, Edit2, Check, X, BarChart3, ClipboardList, CheckSquare, RefreshCw,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { api } from '@/lib/api';
+import { showConfirm } from '@/lib/sweetalert';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -573,7 +574,8 @@ function RecordsTab({
   };
 
   const deleteRecord = async (id: string) => {
-    if (!confirm('Delete this attendance record? This cannot be undone.')) return;
+    const result = await showConfirm('Delete attendance record?', 'Delete this attendance record? This cannot be undone.');
+    if (!result.isConfirmed) return;
     setDeletingId(id);
     try {
       await api.delete(`/hr/attendance/${id}`);

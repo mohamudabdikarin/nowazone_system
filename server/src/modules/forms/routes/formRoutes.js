@@ -16,6 +16,7 @@ router.get('/mine', protect, ctrl.getMySubmissions);
 router.get('/submissions', protect, authorize('forms.read', 'crm.write', '*'), ctrl.getSubmissions);
 router.get('/submissions/:id', protect, authorize('forms.read', 'crm.write', '*'), ctrl.getSubmission);
 router.patch('/submissions/:id/status', protect, authorize('forms.update', 'crm.write', '*'), ctrl.updateSubmissionStatus);
+router.delete('/submissions/:id', protect, authorize('forms.delete', 'crm.write', '*'), ctrl.deleteSubmission);
 router.get('/stats', protect, authorize('forms.read', 'crm.write', '*'), ctrl.getStats);
 
 module.exports = router;

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'react-toastify';
+import { showConfirm } from '@/lib/sweetalert';
 
 type ChatRole = 'user' | 'bot' | 'agent';
 type ChatSource = 'faq' | 'fallback' | 'escalation_notice' | 'system';
@@ -252,7 +253,8 @@ export default function ChatbotPage() {
   };
 
   const handleFaqDelete = async (id: string) => {
-    if (!window.confirm('Delete this FAQ?')) return;
+    const result = await showConfirm('Delete FAQ?', 'This will permanently delete this chatbot FAQ item.');
+    if (!result.isConfirmed) return;
     try {
       await api.delete(`/chatbot/faqs/${id}`);
       toast.success('FAQ deleted');

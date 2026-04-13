@@ -17,7 +17,4 @@ const sitemapConfigSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Single config document per deployment (singleton)
-sitemapConfigSchema.index({ _id: 1 }, { unique: true });
-
 module.exports = mongoose.model('SitemapConfig', sitemapConfigSchema);

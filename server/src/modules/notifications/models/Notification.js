@@ -5,7 +5,7 @@ const notificationSchema = new mongoose.Schema({
   message: { type: String, required: true },
   type: {
     type: String,
-    enum: ['info', 'success', 'warning', 'error', 'lead', 'ticket', 'invoice', 'job', 'system'],
+    enum: ['info', 'success', 'warning', 'error', 'lead', 'subscriber', 'ticket', 'invoice', 'job', 'system'],
     default: 'info',
   },
   // null = broadcast to all; otherwise target specific user

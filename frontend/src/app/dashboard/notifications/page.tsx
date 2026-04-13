@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Check, Trash2, RefreshCw, Info, AlertTriangle, CheckCircle, XCircle, Briefcase, DollarSign, LifeBuoy, Settings } from 'lucide-react';
+import { Bell, Check, Trash2, RefreshCw, Info, AlertTriangle, CheckCircle, XCircle, Briefcase, DollarSign, LifeBuoy, Settings, Users } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
@@ -17,6 +17,7 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
   warning: <AlertTriangle size={16} className="text-yellow-400" />,
   error:   <XCircle size={16} className="text-red-400" />,
   lead:    <Settings size={16} className="text-blue-500" />,
+  subscriber: <Users size={16} className="text-cyan-400" />,
   ticket:  <LifeBuoy size={16} className="text-yellow-400" />,
   invoice: <DollarSign size={16} className="text-green-400" />,
   job:     <Briefcase size={16} className="text-orange-400" />,
@@ -29,6 +30,7 @@ const TYPE_BG: Record<string, string> = {
   warning: 'bg-yellow-400/10 border-yellow-400/20',
   error:   'bg-red-400/10 border-red-400/20',
   lead:    'bg-blue-500/10 border-blue-500/20',
+  subscriber: 'bg-cyan-400/10 border-cyan-400/20',
   ticket:  'bg-yellow-400/10 border-yellow-400/20',
   invoice: 'bg-green-400/10 border-green-400/20',
   job:     'bg-orange-400/10 border-orange-400/20',

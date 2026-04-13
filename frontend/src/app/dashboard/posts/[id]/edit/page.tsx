@@ -6,8 +6,10 @@ import { motion } from 'framer-motion';
 import { Save, Eye, ArrowLeft, Trash2, FileText } from 'lucide-react';
 import Link from 'next/link';
 import RichTextEditor, { RichTextEditorHandle } from '@/components/RichTextEditor';
-import { api } from '@/lib/api';
+import api from '@/lib/api';
 import { toast } from 'react-toastify';
+import dynamic from 'next/dynamic';
+import { showConfirm } from '@/lib/sweetalert';
 
 /* ═══════════════════════════════════════════════════════════════
    ANIMATION PRIMITIVES
@@ -162,7 +164,8 @@ export default function EditPostPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this post?')) return;
+    const result = await showConfirm('Delete post?', 'Are you sure you want to delete this post?');
+    if (!result.isConfirmed) return;
 
     try {
       await api.delete(`/posts/${postId}`);

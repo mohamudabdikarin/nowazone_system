@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const CloudinaryStorage = require('multer-storage-cloudinary');
 const { cloudinary } = require('../../../shared/config/cloudinary');
 const jobCtrl = require('../controllers/jobController');
 const appCtrl = require('../controllers/applicationController');

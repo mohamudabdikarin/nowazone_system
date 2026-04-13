@@ -1,5 +1,6 @@
 const leadService = require('../services/leadService');
 const { invalidateDashboardCache } = require('../../../shared/services/dashboardCache');
+const notificationController = require('../../notifications/controllers/notificationController');
 
 class LeadController {
   async getLeads(req, res, next) {
@@ -21,14 +22,24 @@ class LeadController {
       const lead = await leadService.createLead(req.validated);
       const io = req.app.get('io');
       if (io) {
-        io.to('crm').emit('notification', {
-          type: 'new_lead',
-          data: { id: lead._id, name: lead.name, email: lead.email, status: lead.status, assignedTo: lead.assignedTo },
+        await notificationController.createAndEmit(io, {
+          title: 'New lead received',
+          message: `${lead.name || lead.email} was added as a lead.`,
+          type: 'lead',
+          isGlobal: true,
+          room: 'crm',
+          link: '/dashboard/sales/leads',
+          metadata: { leadId: lead._id, status: lead.status },
         });
+
         if (lead.assignedTo?._id) {
-          io.to(`user:${lead.assignedTo._id}`).emit('notification', {
-            type: 'lead_assigned',
-            data: { id: lead._id, name: lead.name, email: lead.email },
+          await notificationController.createAndEmit(io, {
+            title: 'Lead assigned to you',
+            message: `${lead.name || lead.email} is now assigned to you.`,
+            type: 'lead',
+            userId: lead.assignedTo._id,
+            link: '/dashboard/sales/leads',
+            metadata: { leadId: lead._id, status: lead.status },
           });
         }
       }

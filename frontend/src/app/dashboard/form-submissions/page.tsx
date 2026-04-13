@@ -6,10 +6,12 @@ import {
   FileText, Search, RefreshCw, Eye, Mail, CheckCircle,
   Archive, X, Calendar, Filter, ChevronDown, Clock,
   MessageSquare, ClipboardList, Download as DownloadIcon, Phone,
-  Building2, Globe, ExternalLink,
+  Building2, Globe, ExternalLink, Trash2,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'react-toastify';
+import { useUserProfile, hasPermission } from '@/hooks/useUserProfile';
+import { showConfirm } from '@/lib/sweetalert';
 
 interface FormSubmission {
   _id: string;
@@ -62,6 +64,7 @@ const fadeUp = {
 };
 
 export default function FormSubmissionsPage() {
+  const { user } = useUserProfile();
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -74,6 +77,8 @@ export default function FormSubmissionsPage() {
   const [stats, setStats] = useState<FormStats>({ total: 0, byType: [], byStatus: [] });
   const [selected, setSelected] = useState<FormSubmission | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const canDeleteSubmission = hasPermission(user, 'forms.delete') || hasPermission(user, 'crm.write');
 
   const getStatCount = (arr: { type?: string; status?: string; count: number }[], key: string) =>
     arr.find((s) => (s.type || s.status) === key)?.count ?? 0;
@@ -125,6 +130,37 @@ export default function FormSubmissionsPage() {
     } finally {
       setDetailLoading(false);
     }
+  };
+
+  const deleteSubmission = async (id: string) => {
+    if (!canDeleteSubmission) {
+      toast.error('You do not have permission to delete submissions');
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      await api.delete(`/forms/submissions/${id}`);
+      if (selected?._id === id) setSelected(null);
+      toast.success('Submission deleted');
+      await fetchAll();
+    } catch {
+      toast.error('Failed to delete submission');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const requestDeleteSubmission = async (id: string) => {
+    if (!canDeleteSubmission) {
+      toast.error('You do not have permission to delete submissions');
+      return;
+    }
+
+    const result = await showConfirm('Delete submission?', 'This will permanently remove the form submission and cannot be undone.');
+    if (!result.isConfirmed) return;
+
+    await deleteSubmission(id);
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -394,6 +430,19 @@ export default function FormSubmissionsPage() {
                               <Archive size={14} />
                             </motion.button>
                           )}
+                          {canDeleteSubmission && (
+                            <motion.button
+                              onClick={() => requestDeleteSubmission(sub._id)}
+                              disabled={deletingId === sub._id}
+                              whileHover={{ scale: deletingId === sub._id ? 1 : 1.15 }}
+                              whileTap={{ scale: deletingId === sub._id ? 1 : 0.9 }}
+                              className="p-1.5 rounded-lg cursor-pointer disabled:opacity-50"
+                              style={{ color: 'var(--error, #ef4444)' }}
+                              title="Delete submission"
+                            >
+                              <Trash2 size={14} />
+                            </motion.button>
+                          )}
                         </div>
                       </td>
                     </motion.tr>
@@ -550,6 +599,16 @@ export default function FormSubmissionsPage() {
                             Archive
                           </button>
                         )}
+                        {canDeleteSubmission && (
+                          <button
+                            onClick={() => requestDeleteSubmission(selected._id)}
+                            disabled={deletingId === selected._id}
+                            className="px-3 py-2 border rounded-lg text-xs font-medium cursor-pointer disabled:opacity-50"
+                            style={{ borderColor: 'var(--error, #ef4444)', color: 'var(--error, #ef4444)' }}
+                          >
+                            {deletingId === selected._id ? 'Deleting…' : 'Delete'}
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -675,6 +734,7 @@ export default function FormSubmissionsPage() {
           </>
         )}
       </AnimatePresence>
+
     </motion.div>
   );
 }

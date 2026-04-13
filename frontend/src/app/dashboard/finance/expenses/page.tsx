@@ -16,6 +16,7 @@ import {
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'react-toastify';
+import { showConfirm } from '@/lib/sweetalert';
 
 type ExpenseCategory = 'office' | 'software' | 'travel' | 'marketing' | 'utilities' | 'payroll' | 'supplies' | 'other';
 type ExpenseStatus = 'pending' | 'approved' | 'reimbursed' | 'rejected';
@@ -157,7 +158,8 @@ export default function ExpensesPage() {
   };
 
   const deleteExpense = async (id: string) => {
-    if (!confirm('Delete this expense?')) return;
+    const result = await showConfirm('Delete expense?', 'Delete this expense?');
+    if (!result.isConfirmed) return;
     try {
       await api.delete(`/expenses/${id}`);
       toast.success('Expense deleted');

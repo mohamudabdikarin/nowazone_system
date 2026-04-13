@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { api } from '@/lib/api';
+import { showConfirm } from '@/lib/sweetalert';
 
 interface Resume {
   _id: string;
@@ -116,7 +117,8 @@ export default function ResumeDatabasePage() {
   };
 
   const deleteResume = async (id: string, name: string) => {
-    if (!confirm(`Delete resume for "${name}"? This cannot be undone.`)) return;
+    const result = await showConfirm('Delete resume?', `Delete resume for "${name}"? This cannot be undone.`);
+    if (!result.isConfirmed) return;
     setDeletingId(id);
     try {
       await api.delete(`/hr/resumes/${id}`);

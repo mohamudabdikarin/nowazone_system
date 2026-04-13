@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Edit, Trash2, Eye, Calendar, FileText } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'react-toastify';
+import { showConfirm } from '@/lib/sweetalert';
 
 /* ═══════════════════════════════════════════════════════════════
    ANIMATION PRIMITIVES
@@ -77,7 +78,8 @@ export default function PostsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this post?')) return;
+    const result = await showConfirm('Delete post?', 'Are you sure you want to delete this post?');
+    if (!result.isConfirmed) return;
 
     try {
       await api.delete(`/posts/${id}`);

@@ -7,6 +7,7 @@ import {
     ChevronLeft, ChevronRight, Check, AlertCircle, Repeat,
 } from 'lucide-react';
 import api from '@/lib/api';
+import { showConfirm } from '@/lib/sweetalert';
 
 interface Redirect {
     _id: string;
@@ -102,6 +103,12 @@ export default function SeoRedirectsPage() {
         try { await api.delete(`/seo/redirects/${id}`); fetchData(pagination.page); }
         catch { setError('Failed to delete redirect'); }
         finally { setDeletingId(null); }
+    };
+
+    const requestDelete = async (id: string) => {
+        const result = await showConfirm('Delete redirect?', 'This will permanently delete this redirect rule.');
+        if (!result.isConfirmed) return;
+        await handleDelete(id);
     };
 
     const inputStyle: React.CSSProperties = {
@@ -216,7 +223,7 @@ export default function SeoRedirectsPage() {
                                 <motion.button whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.9 }} onClick={() => openEdit(r)}
                                     className="p-1.5 rounded-lg" style={{ color: 'var(--accent)' }} title="Edit"><Pencil size={14} /></motion.button>
                                 <motion.button whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.9 }}
-                                    onClick={() => { if (confirm('Delete this redirect?')) handleDelete(r._id); }}
+                                    onClick={() => requestDelete(r._id)}
                                     disabled={deletingId === r._id}
                                     className="p-1.5 rounded-lg" style={{ color: 'var(--error, #ef4444)', opacity: deletingId === r._id ? 0.5 : 1 }} title="Delete">
                                     <Trash2 size={14} /></motion.button>

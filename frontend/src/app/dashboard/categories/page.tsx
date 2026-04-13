@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit, Trash2, FolderTree } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'react-toastify';
+import { showConfirm } from '@/lib/sweetalert';
 
 /* ═══════════════════════════════════════════════════════════════
    ANIMATION PRIMITIVES
@@ -100,7 +101,8 @@ export default function CategoriesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this category?')) return;
+    const result = await showConfirm('Delete category?', 'Are you sure you want to delete this category?');
+    if (!result.isConfirmed) return;
     try {
       await api.delete(`/categories/${id}`);
       toast.success('Category deleted successfully');

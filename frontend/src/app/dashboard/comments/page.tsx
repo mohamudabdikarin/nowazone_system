@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, Trash2, MessageSquare, Calendar } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'react-toastify';
+import { showConfirm } from '@/lib/sweetalert';
 
 /* ═══════════════════════════════════════════════════════════════
    ANIMATION PRIMITIVES
@@ -87,7 +88,8 @@ export default function CommentsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this comment?')) return;
+    const result = await showConfirm('Delete comment?', 'Are you sure you want to delete this comment?');
+    if (!result.isConfirmed) return;
     try {
       await api.delete(`/comments/${id}`);
       toast.success('Comment deleted');
@@ -119,7 +121,8 @@ export default function CommentsPage() {
       toast.error('No comments selected');
       return;
     }
-    if (!confirm(`Are you sure you want to delete ${selectedComments.length} comments?`)) return;
+    const result = await showConfirm('Delete comments?', `Are you sure you want to delete ${selectedComments.length} comments?`);
+    if (!result.isConfirmed) return;
     try {
       await api.post('/comments/bulk/delete', { commentIds: selectedComments });
       toast.success(`${selectedComments.length} comments deleted`);

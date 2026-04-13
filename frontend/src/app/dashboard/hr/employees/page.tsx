@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { api } from '@/lib/api';
+import { showConfirm } from '@/lib/sweetalert';
 
 interface Employee {
   _id: string;
@@ -76,7 +77,8 @@ export default function EmployeesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this employee? This cannot be undone.')) return;
+    const result = await showConfirm('Delete employee?', 'Delete this employee? This cannot be undone.');
+    if (!result.isConfirmed) return;
     try {
       await api.delete(`/hr/employees/${id}`);
       toast.success('Employee deleted');

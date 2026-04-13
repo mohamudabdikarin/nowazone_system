@@ -7,6 +7,7 @@ import {
     Eye, EyeOff, AlertCircle, Check, FileText, Copy, History, Send,
 } from 'lucide-react';
 import api from '@/lib/api';
+import { showConfirm } from '@/lib/sweetalert';
 
 const PAGE_STATUSES = ['draft', 'review', 'approved', 'published', 'archived'] as const;
 type PageStatus = typeof PAGE_STATUSES[number];
@@ -235,6 +236,12 @@ export default function SeoPagesPage() {
         }
     };
 
+    const requestDelete = async (id: string) => {
+        const result = await showConfirm('Delete SEO entry?', 'This will permanently delete this SEO entry.');
+        if (!result.isConfirmed) return;
+        await handleDelete(id);
+    };
+
     const inputStyle: React.CSSProperties = {
         backgroundColor: 'var(--bg)',
         borderWidth: 1,
@@ -460,7 +467,7 @@ export default function SeoPagesPage() {
                                     <motion.button
                                         whileHover={{ scale: 1.08 }}
                                         whileTap={{ scale: 0.95 }}
-                                        onClick={() => { if (confirm('Delete this SEO entry?')) handleDelete(entry._id); }}
+                                        onClick={() => requestDelete(entry._id)}
                                         disabled={deletingId === entry._id}
                                         className="p-1.5 rounded-lg transition-colors"
                                         style={{ color: 'var(--error, #ef4444)', opacity: deletingId === entry._id ? 0.5 : 1 }}
@@ -562,7 +569,7 @@ export default function SeoPagesPage() {
                             <div className="space-y-4">
                                 {/* Page Path */}
                                 <div>
-                                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Page Path *</label>
+                                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Page URL path *</label>
                                     <input
                                         type="text"
                                         placeholder="/about"
@@ -571,6 +578,9 @@ export default function SeoPagesPage() {
                                         className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
                                         style={inputStyle}
                                     />
+                                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                                        Use the page route only, for example <code>/about</code> or <code>/products/shoes</code>.
+                                    </p>
                                 </div>
 
                                 {/* Google Preview */}
@@ -593,7 +603,7 @@ export default function SeoPagesPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                                            Meta Title <span className="font-normal">({form.metaTitle.length}/120)</span>
+                                            Search result title <span className="font-normal">({form.metaTitle.length}/120)</span>
                                         </label>
                                         <input
                                             type="text"
@@ -606,7 +616,7 @@ export default function SeoPagesPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Keywords</label>
+                                        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Search keywords (optional)</label>
                                         <input
                                             type="text"
                                             placeholder="keyword1, keyword2, …"
@@ -619,7 +629,7 @@ export default function SeoPagesPage() {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                                        Meta Description <span className="font-normal">({form.metaDescription.length}/320)</span>
+                                        Search result description <span className="font-normal">({form.metaDescription.length}/320)</span>
                                     </label>
                                     <textarea
                                         placeholder="A concise page description for search engines…"
@@ -634,42 +644,41 @@ export default function SeoPagesPage() {
 
                                 {/* Open Graph */}
                                 <div className="pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
-                                    <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>Open Graph</p>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>Social sharing (optional)</p>
+                                    <div className="grid grid-cols-1 gap-4">
                                         <div>
-                                            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>OG Title</label>
-                                            <input type="text" placeholder="Open Graph title" value={form.ogTitle} onChange={(e) => setForm({ ...form, ogTitle: e.target.value })} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>OG Type</label>
-                                            <input type="text" placeholder="website" value={form.ogType} onChange={(e) => setForm({ ...form, ogType: e.target.value })} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
+                                            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Social title</label>
+                                            <input type="text" placeholder="Title shown when this page is shared" value={form.ogTitle} onChange={(e) => setForm({ ...form, ogTitle: e.target.value })} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
                                         </div>
                                     </div>
                                     <div className="mt-4">
-                                        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>OG Description</label>
-                                        <textarea placeholder="Open Graph description" value={form.ogDescription} onChange={(e) => setForm({ ...form, ogDescription: e.target.value })} rows={2} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none" style={inputStyle} />
+                                        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Social description</label>
+                                        <textarea placeholder="Description shown when this page is shared" value={form.ogDescription} onChange={(e) => setForm({ ...form, ogDescription: e.target.value })} rows={2} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none" style={inputStyle} />
                                     </div>
                                     <div className="mt-4">
-                                        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>OG Image URL</label>
+                                        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Social image URL</label>
                                         <input type="text" placeholder="https://…" value={form.ogImage} onChange={(e) => setForm({ ...form, ogImage: e.target.value })} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
                                     </div>
                                 </div>
 
                                 {/* Technical */}
                                 <div className="pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
-                                    <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>Technical</p>
+                                    <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>Advanced settings (optional)</p>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Canonical URL</label>
+                                            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Preferred page URL</label>
                                             <input type="text" placeholder="https://…" value={form.canonicalUrl} onChange={(e) => setForm({ ...form, canonicalUrl: e.target.value })} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
+                                            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                                                Only fill this if this page has duplicate versions and you want search engines to prioritize one URL.
+                                            </p>
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Robots</label>
+                                            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Search engine access rules</label>
                                             <input type="text" placeholder="index, follow" value={form.robots} onChange={(e) => setForm({ ...form, robots: e.target.value })} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
                                         </div>
                                     </div>
                                     <div className="mt-4">
-                                        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Structured Data (JSON-LD)</label>
+                                        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Rich results code (JSON-LD)</label>
                                         <textarea
                                             placeholder='{"@context":"https://schema.org", …}'
                                             value={form.structuredData}
@@ -683,7 +692,7 @@ export default function SeoPagesPage() {
 
                                 {/* Status (use Publish action to set published) */}
                                 <div className="pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
-                                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Status</label>
+                                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Workflow status</label>
                                     <select
                                         value={form.status}
                                         onChange={(e) => setForm({ ...form, status: e.target.value as PageStatus, isPublished: e.target.value === 'published' })}

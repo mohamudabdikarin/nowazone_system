@@ -3,6 +3,7 @@ const ChatbotFaq = require('../models/ChatbotFaq');
 const ChatSession = require('../models/ChatSession');
 const Ticket = require('../../tickets/models/Ticket');
 const { AppError } = require('../../../shared/middleware/errorHandler');
+const notificationController = require('../../notifications/controllers/notificationController');
 const { getAIResponse, isGreeting, getGreetingReply } = require('../services/aiChatService');
 
 async function getOrCreateConfig(userId) {
@@ -317,11 +318,14 @@ exports.publicChat = async (req, res, next) => {
 
         const io = req.app.get('io');
         if (io) {
-          io.to('crm').emit('notification:new', {
-            type: 'chat_escalated',
+          await notificationController.createAndEmit(io, {
             title: 'Chat escalated to human',
             message: `${visitorName || 'A visitor'} needs help: ${message.slice(0, 100)}`,
-            data: { sessionId: session._id, ticketId: ticket._id },
+            type: 'ticket',
+            isGlobal: true,
+            room: 'crm',
+            link: '/dashboard/tickets',
+            metadata: { sessionId: session._id, ticketId: ticket._id },
           });
         }
       } else {

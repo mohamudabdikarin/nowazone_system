@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, Plus, Search, ChevronDown, ChevronUp, Trash2, Edit, Check, GripVertical } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'react-toastify';
+import { showConfirm } from '@/lib/sweetalert';
 
 /* ═══════════════════════════════════════════════════════════════
    ANIMATION PRIMITIVES
@@ -127,7 +128,8 @@ export default function FAQPage() {
   };
 
   const deleteFAQ = async (id: string) => {
-    if (!confirm('Delete this FAQ?')) return;
+    const result = await showConfirm('Delete FAQ?', 'This will permanently delete this FAQ item.');
+    if (!result.isConfirmed) return;
     try {
       await api.delete(`/faq/${id}`);
       setFaqs((prev) => prev.filter((f) => f._id !== id));

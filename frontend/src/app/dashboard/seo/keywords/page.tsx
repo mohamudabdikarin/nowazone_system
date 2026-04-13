@@ -8,6 +8,7 @@ import {
     TrendingUp, TrendingDown, Minus, BarChart2,
 } from 'lucide-react';
 import api from '@/lib/api';
+import { showConfirm } from '@/lib/sweetalert';
 
 interface Keyword {
     _id: string;
@@ -190,6 +191,12 @@ export default function SeoKeywordsPage() {
         try { await api.delete(`/seo/keywords/${id}`); fetchData(pagination.page); }
         catch { setError('Failed to delete'); }
         finally { setDeletingId(null); }
+    };
+
+    const requestDelete = async (id: string) => {
+        const result = await showConfirm('Delete keyword?', 'This will permanently delete this tracked keyword.');
+        if (!result.isConfirmed) return;
+        await handleDelete(id);
     };
 
     const inputStyle: React.CSSProperties = {
@@ -377,7 +384,7 @@ export default function SeoKeywordsPage() {
                                     <motion.button whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.9 }} onClick={() => openEdit(kw)}
                                         className="p-1.5 rounded-lg" style={{ color: 'var(--accent)' }}><Pencil size={14} /></motion.button>
                                     <motion.button whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.9 }}
-                                        onClick={() => { if (confirm('Delete this keyword?')) handleDelete(kw._id); }}
+                                        onClick={() => requestDelete(kw._id)}
                                         disabled={deletingId === kw._id}
                                         className="p-1.5 rounded-lg" style={{ color: 'var(--error, #ef4444)', opacity: deletingId === kw._id ? 0.5 : 1 }}>
                                         <Trash2 size={14} /></motion.button>
